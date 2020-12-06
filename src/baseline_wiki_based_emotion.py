@@ -70,26 +70,14 @@ class InputExample(object):
     """A single training/test example for simple sequence classification."""
 
     def __init__(self, guid, text_a, text_b=None, label=None):
-        """Constructs a InputExample.
-
-        Args:
-            guid: Unique id for the example.
-            text_a: string. The untokenized text of the first sequence. For single
-            sequence tasks, only this sequence must be specified.
-            text_b: (Optional) string. The untokenized text of the second sequence.
-            Only must be specified for sequence pair tasks.
-            label: (Optional) string. The label of the example. This should be
-            specified for train and dev examples, but not for test examples.
-        """
-        self.guid = guid
-        self.text_a = text_a
-        self.text_b = text_b
-        self.label = label
+        self.guid = guid  # Unique id for the example.
+        self.text_a = text_a  # The untokenized text of the first sequence. For single sequence tasks, only this sequence must be specified.
+        self.text_b = text_b  # The untokenized text of the second sequence Only must be specified for sequence pair tasks.
+        self.label = label  # The label of the example. This should be specified for train and dev examples, but not for test examples.
 
 
 class InputFeatures(object):
     """A single set of features of data."""
-
     def __init__(self, input_ids, input_mask, segment_ids, label_id):
         self.input_ids = input_ids
         self.input_mask = input_mask
@@ -99,7 +87,6 @@ class InputFeatures(object):
 
 class DataProcessor(object):
     """Base class for data converters for sequence classification data sets."""
-
     def get_train_examples(self, data_dir):
         """Gets a collection of `InputExample`s for the train set."""
         raise NotImplementedError()
@@ -148,54 +135,37 @@ class RteProcessor(DataProcessor):
         return examples
 
 
-    def get_examples_Wikipedia_train(self, filename, size_limit_per_type):
+    def get_examples_Wikipedia_train(self, filename, size):  # ？？？？？？？？？？？同一个text加入两次label不同？？？？？？？？？？
         readfile = codecs.open(filename, 'r', 'utf-8')
-
-        line_co=0
-        exam_co = 0
-        examples=[]
+        exam_id = 0  
+        examples = []
         label_list = []
-
-        history_types = set()
+        history_categories = set()
         for line in readfile:
             try:
                 line_dic = json.loads(line)
             except ValueError:
                 continue
-
             text = line_dic.get('text')
-            type_list = line_dic.get('categories')
-            history_types= history_types|set(type_list)
-            neg_types = history_types - set(type_list)
-            if len(neg_types) > 3:
-                sampled_type_set = random.sample(neg_types, 3)
+            current_categories = line_dic.get('categories')  # ['Defunct newspapers of Alabama', 'Defunct newspapers of Georgia (U.S. state)', 'Harvard University publications', 'Publications disestablished in 1968', 'Publications established in 1965'] 
+            history_categories= history_categories|set(current_categories)  
+            neg_categories = history_categories - set(current_categories)   # 新的类
+            if len(neg_categories) > 3:  # 新类大于三个，抽三个，不够丢弃
+                sampled_categories = random.sample(neg_categories, 3)
             else:
                 continue
-
             '''pos pair'''
-            text_a = text
-            for hypo in type_list:
-                guid = "train-"+str(exam_co)
-
-                text_b = hypo
-                label = 'entailment' #if line[0] == '1' else 'not_entailment'
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                exam_co+=1
-
+            for cat in current_categories:
+                examples.append(InputExample(guid="train-"+str(exam_id), text_a=text, text_b=cat, label='entailment'))
+                exam_id+=1
             '''neg pair'''
-            for hypo in sampled_type_set:
-                guid = "train-"+str(exam_co)
-                text_b = hypo
-                label = 'not_entailment' #if line[0] == '1' else 'not_entailment'
-                examples.append(
-                    InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
-                exam_co+=1
-            if exam_co > size_limit_per_type:
+            for cat in sampled_categories:
+                examples.append(InputExample(guid="train-"+str(exam_id), text_a=text, text_b=cat, label='not_entailment'))
+                exam_id+=1
+            if exam_id > size:
                 break
-
         readfile.close()
-        print('loaded size:', exam_co)
+        print('loaded size:', exam_id)
         return examples, set()
 
 
@@ -530,33 +500,30 @@ def main():
                         default=None,
                         type=str,
                         required=True,
-                        help="The input data dir. Should contain the .tsv files (or other data files) for the task.")
+                        help="输入数据dir。应该包含任务的.tsv文件(或其他数据文件)。")
     parser.add_argument("--bert_model", default=None, type=str, required=True,
-                        help="Bert pre-trained model selected in the list: bert-base-uncased, "
-                        "bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
+                        help="Bert pre-trained model selected in the list:  "
+                        "bert-base-uncased, bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
                         "bert-base-multilingual-cased, bert-base-chinese.")
     parser.add_argument("--task_name",
                         default=None,
                         type=str,
                         required=True,
-                        help="The name of the task to train.")
+                        help="训练任务的名称")
     parser.add_argument("--output_dir",
                         default=None,
                         type=str,
                         required=True,
-                        help="The output directory where the model predictions and checkpoints will be written.")
-
+                        help="将写入模型预测和checkpoints的输出目录。 ")
     ## Other parameters
     parser.add_argument("--cache_dir",
                         default="",
                         type=str,
-                        help="Where do you want to store the pre-trained models downloaded from s3")
+                        help="您希望将从s3下载的预训练模型存储在何处")
     parser.add_argument("--max_seq_length",
                         default=128,
                         type=int,
-                        help="The maximum total input sequence length after WordPiece tokenization. \n"
-                             "Sequences longer than this will be truncated, and sequences shorter \n"
-                             "than this will be padded.")
+                        help="WordPiece tokenization 后输入序列的最大总长度，大于这个的序列将被截断，小于的padded")
     parser.add_argument("--do_train",
                         action='store_true',
                         help="Whether to run training.")
@@ -565,7 +532,7 @@ def main():
                         help="Whether to run eval on the dev set.")
     parser.add_argument("--do_lower_case",
                         action='store_true',
-                        help="Set this flag if you are using an uncased model.")
+                        help="如果您使用的是uncased模型，请设置此标志。")
     parser.add_argument("--train_batch_size",
                         default=64,
                         type=int,
@@ -582,7 +549,7 @@ def main():
                         default=3.0,
                         type=float,
                         help="Total number of training epochs to perform.")
-    parser.add_argument("--warmup_proportion",
+    parser.add_argument("--warmup_proportion",  # ？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
                         default=0.1,
                         type=float,
                         help="Proportion of training to perform linear learning rate warmup for. "
@@ -645,15 +612,15 @@ def main():
         "rte": "classification"
         # "wnli": "classification",
     }
-
-    if args.local_rank == -1 or args.no_cuda:
+    
+    if args.local_rank == -1 or args.no_cuda:  # 未指定GPU，或无GPU
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
     else:
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
-        n_gpu = 1
-        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs
+        n_gpu = 1  # ？？？？？？？？？？多GPU？？？？？？？
+        # Initializes the distributed backend which will take care of sychronizing nodes/GPUs # ？？？？？单GPU没有分布式？？？？？？
         torch.distributed.init_process_group(backend='nccl')
     logger.info("device: {} n_gpu: {}, distributed training: {}, 16-bits training: {}".format(
         device, n_gpu, bool(args.local_rank != -1), args.fp16))
@@ -662,7 +629,10 @@ def main():
         raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
                             args.gradient_accumulation_steps))
 
-    args.train_batch_size = args.train_batch_size // args.gradient_accumulation_steps
+    # 如果显存不足，假设原来的batch size=10,数据总量为1000，那么一共需要100train steps，同时一共进行100次梯度更新。
+    # 若是显存不够，我们需要减小batch size，我们设置gradient_accumulation_steps=2，那么我们新的batch_size=10/2=5，
+    # 我们需要运行两次，才能在内存中放入10条数据，梯度更新的次数不变为100次，那么我们的train_steps=200
+    args.train_batch_size = args.train_batch_size//args.gradient_accumulation_steps
 
     random.seed(args.seed)
     np.random.seed(args.seed)
@@ -673,34 +643,29 @@ def main():
     if not args.do_train and not args.do_eval:
         raise ValueError("At least one of `do_train` or `do_eval` must be True.")
 
-
     task_name = args.task_name.lower()
-
     if task_name not in processors:
         raise ValueError("Task not found: %s" % (task_name))
 
-    processor = processors[task_name]()
-    output_mode = output_modes[task_name]
+    processor = processors[task_name]()  # RteProcessor
+    output_mode = output_modes[task_name]  # "classification"
 
-    label_list = processor.get_labels() #[0,1]
-    num_labels = len(label_list)
-
-
+    label_list = processor.get_labels()  # ["entailment", "not_entailment"]
+    num_labels = len(label_list)  
 
     train_examples = None
-    num_train_optimization_steps = None
+    num_train_steps = None
     if args.do_train:
         # train_examples = processor.get_train_examples_wenpeng('/home/wyin3/Datasets/glue_data/RTE/train.tsv')
-        train_examples, seen_types = processor.get_examples_Wikipedia_train('/home/zut_csi/tomding/zs/BenchmarkingZeroShot/emotion/train_pu_half_v1.txt', 100000)
+
+        train_examples, seen_types = processor.get_examples_Wikipedia_train('/home/zut_csi/tomding/zs/BenchmarkingZeroShotData/tokenized_wiki2categories.txt', 100000)
         
         # /export/home/Dataset/wikipedia/parsed_output/tokenized_wiki/tokenized_wiki2categories.txt', 100000) #train_pu_half_v1.txt
         # seen_classes=[0,2,4,6,8]
-
-        num_train_optimization_steps = int(
-            len(train_examples) / args.train_batch_size / args.gradient_accumulation_steps) * args.num_train_epochs
+        # ?？？？？？？？？？？？？？batch_size 已经除 args.gradient_accumulation_steps？？？？？？？？？？？？？？？？？
+        num_train_steps = int(len(train_examples)/args.train_batch_size/args.gradient_accumulation_steps)*args.num_train_epochs
         if args.local_rank != -1:
-            num_train_optimization_steps = num_train_optimization_steps // torch.distributed.get_world_size()
-
+            num_train_steps = num_train_steps//torch.distributed.get_world_size()
     # Prepare model
     cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
     # model = BertForSequenceClassification.from_pretrained(args.bert_model,
@@ -790,7 +755,7 @@ def main():
         logger.info("***** Running training *****")
         logger.info("  Num examples = %d", len(train_examples))
         logger.info("  Batch size = %d", args.train_batch_size)
-        logger.info("  Num steps = %d", num_train_optimization_steps)
+        logger.info("  Num steps = %d", num_train_steps)
         all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
         all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
         all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
