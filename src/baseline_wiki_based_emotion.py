@@ -166,7 +166,7 @@ class RteProcessor(DataProcessor):
                 break
         readfile.close()
         print('loaded size:', exam_id)
-        return examples, set()
+        return examples, set()  # ？？？？？？？？？？？？？返回空元组？？？？？？？？？？？？？？
 
 
     def get_examples_emotion_test(self, filename, seen_types):
@@ -494,89 +494,27 @@ def compute_metrics(task_name, preds, labels):
 
 def main():
     parser = argparse.ArgumentParser()
-
-    ## Required parameters
-    parser.add_argument("--data_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="输入数据dir。应该包含任务的.tsv文件(或其他数据文件)。")
-    parser.add_argument("--bert_model", default=None, type=str, required=True,
-                        help="Bert pre-trained model selected in the list:  "
-                        "bert-base-uncased, bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, "
-                        "bert-base-multilingual-cased, bert-base-chinese.")
-    parser.add_argument("--task_name",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="训练任务的名称")
-    parser.add_argument("--output_dir",
-                        default=None,
-                        type=str,
-                        required=True,
-                        help="将写入模型预测和checkpoints的输出目录。 ")
-    ## Other parameters
-    parser.add_argument("--cache_dir",
-                        default="",
-                        type=str,
-                        help="您希望将从s3下载的预训练模型存储在何处")
-    parser.add_argument("--max_seq_length",
-                        default=128,
-                        type=int,
-                        help="WordPiece tokenization 后输入序列的最大总长度，大于这个的序列将被截断，小于的padded")
-    parser.add_argument("--do_train",
-                        action='store_true',
-                        help="Whether to run training.")
-    parser.add_argument("--do_eval",
-                        action='store_true',
-                        help="Whether to run eval on the dev set.")
-    parser.add_argument("--do_lower_case",
-                        action='store_true',
-                        help="如果您使用的是uncased模型，请设置此标志。")
-    parser.add_argument("--train_batch_size",
-                        default=64,
-                        type=int,
-                        help="Total batch size for training.")
-    parser.add_argument("--eval_batch_size",
-                        default=256,
-                        type=int,
-                        help="Total batch size for eval.")
-    parser.add_argument("--learning_rate",
-                        default=5e-5,
-                        type=float,
-                        help="The initial learning rate for Adam.")
-    parser.add_argument("--num_train_epochs",
-                        default=3.0,
-                        type=float,
-                        help="Total number of training epochs to perform.")
-    parser.add_argument("--warmup_proportion",  # ？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
-                        default=0.1,
-                        type=float,
-                        help="Proportion of training to perform linear learning rate warmup for. "
-                             "E.g., 0.1 = 10%% of training.")
-    parser.add_argument("--no_cuda",
-                        action='store_true',
-                        help="Whether not to use CUDA when available")
-    parser.add_argument("--local_rank",
-                        type=int,
-                        default=-1,
-                        help="local_rank for distributed training on gpus")
-    parser.add_argument('--seed',
-                        type=int,
-                        default=42,
-                        help="random seed for initialization")
-    parser.add_argument('--gradient_accumulation_steps',
-                        type=int,
-                        default=1,
-                        help="Number of updates steps to accumulate before performing a backward/update pass.")
-    parser.add_argument('--fp16',
-                        action='store_true',
-                        help="Whether to use 16-bit float precision instead of 32-bit")
-    parser.add_argument('--loss_scale',
-                        type=float, default=0,
-                        help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.\n"
-                             "0 (default value): dynamic loss scaling.\n"
-                             "Positive power of 2: static loss scaling value.\n")
+    parser.add_argument("--data_dir",default=None,type=str, required=True,help="输入数据dir。应该包含任务的.tsv文件(或其他数据文件)。")
+    parser.add_argument("--bert_model", default=None, type=str, required=True,help="Bert pre-trained model selected in the list: bert-base-uncased, bert-large-uncased, bert-base-cased, bert-large-cased, bert-base-multilingual-uncased, bert-base-multilingual-cased, bert-base-chinese.")
+    parser.add_argument("--task_name",default=None,type=str, required=True,help="训练任务的名称")
+    parser.add_argument("--output_dir",default=None,type=str,required=True,help="将写入模型预测和checkpoints的输出目录。 ")
+    parser.add_argument("--cache_dir", default="",type=str,help="您希望将从s3下载的预训练模型存储在何处")
+    parser.add_argument("--max_seq_length",default=128,type=int, help="WordPiece tokenization 后输入序列的最大总长度，大于这个的序列将被截断，小于的padded")
+    parser.add_argument("--do_train",action='store_true',help="Whether to run training.")
+    parser.add_argument("--do_eval",action='store_true',help="Whether to run eval on the dev set.")
+    parser.add_argument("--do_lower_case",action='store_true',help="如果您使用的是uncased模型，请设置此标志。")
+    parser.add_argument("--train_batch_size",default=64,type=int,help="Total batch size for training.")
+    parser.add_argument("--eval_batch_size",default=256, type=int,help="Total batch size for eval.")
+    parser.add_argument("--learning_rate",default=5e-5,type=float,help="The initial learning rate for Adam.")
+    parser.add_argument("--num_train_epochs",default=3.0,type=float,help="Total number of training epochs to perform.")
+    # ？？？？？？？？？？？？？？？？？？？？？？？？？？？？？？
+    parser.add_argument("--warmup_proportion",default=0.1,type=float,help="Proportion of training to perform linear learning rate warmup for. E.g., 0.1 = 10%% of training.")
+    parser.add_argument("--no_cuda",action='store_true',help="Whether not to use CUDA when available")
+    parser.add_argument("--local_rank",type=int,default=-1,help="local_rank for distributed training on gpus")
+    parser.add_argument('--seed',type=int,default=42,help="random seed for initialization")
+    parser.add_argument('--gradient_accumulation_steps',type=int,default=1,help="Number of updates steps to accumulate before performing a backward/update pass.")
+    parser.add_argument('--fp16',action='store_true',help="Whether to use 16-bit float precision instead of 32-bit")
+    parser.add_argument('--loss_scale',type=float, default=0, help="Loss scaling to improve fp16 numeric stability. Only used when fp16 set to True.0 (default value): dynamic loss scaling.Positive power of 2: static loss scaling value.\n")
     parser.add_argument('--server_ip', type=str, default='', help="Can be used for distant debugging.")
     parser.add_argument('--server_port', type=str, default='', help="Can be used for distant debugging.")
     args = parser.parse_args()
@@ -616,7 +554,7 @@ def main():
     if args.local_rank == -1 or args.no_cuda:  # 未指定GPU，或无GPU
         device = torch.device("cuda" if torch.cuda.is_available() and not args.no_cuda else "cpu")
         n_gpu = torch.cuda.device_count()
-    else:
+    else:                                        # 分布式
         torch.cuda.set_device(args.local_rank)
         device = torch.device("cuda", args.local_rank)
         n_gpu = 1  # ？？？？？？？？？？多GPU？？？？？？？
@@ -626,8 +564,7 @@ def main():
         device, n_gpu, bool(args.local_rank != -1), args.fp16))
 
     if args.gradient_accumulation_steps < 1:
-        raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(
-                            args.gradient_accumulation_steps))
+        raise ValueError("Invalid gradient_accumulation_steps parameter: {}, should be >= 1".format(args.gradient_accumulation_steps))
 
     # 如果显存不足，假设原来的batch size=10,数据总量为1000，那么一共需要100train steps，同时一共进行100次梯度更新。
     # 若是显存不够，我们需要减小batch size，我们设置gradient_accumulation_steps=2，那么我们新的batch_size=10/2=5，
@@ -637,7 +574,8 @@ def main():
     random.seed(args.seed)
     np.random.seed(args.seed)
     torch.manual_seed(args.seed)
-    if n_gpu > 0:
+
+    if n_gpu > 0:  # 多GPU
         torch.cuda.manual_seed_all(args.seed)
 
     if not args.do_train and not args.do_eval:
@@ -657,7 +595,6 @@ def main():
     num_train_steps = None
     if args.do_train:
         # train_examples = processor.get_train_examples_wenpeng('/home/wyin3/Datasets/glue_data/RTE/train.tsv')
-
         train_examples, seen_types = processor.get_examples_Wikipedia_train('/home/zut_csi/tomding/zs/BenchmarkingZeroShotData/tokenized_wiki2categories.txt', 100000)
         
         # /export/home/Dataset/wikipedia/parsed_output/tokenized_wiki/tokenized_wiki2categories.txt', 100000) #train_pu_half_v1.txt
@@ -665,7 +602,7 @@ def main():
         # ?？？？？？？？？？？？？？batch_size 已经除 args.gradient_accumulation_steps？？？？？？？？？？？？？？？？？
         num_train_steps = int(len(train_examples)/args.train_batch_size/args.gradient_accumulation_steps)*args.num_train_epochs
         if args.local_rank != -1:
-            num_train_steps = num_train_steps//torch.distributed.get_world_size()
+            num_train_steps = num_train_steps//torch.distributed.get_world_size()   # 全局的整个的进程数
     # Prepare model
     cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
     # model = BertForSequenceClassification.from_pretrained(args.bert_model,
@@ -673,24 +610,21 @@ def main():
     #           num_labels=num_labels)
     # tokenizer = BertTokenizer.from_pretrained(args.bert_model, do_lower_case=args.do_lower_case)
 
-    pretrain_model_dir = 'bert-base-uncased' #FineTuneOnCombined'# FineTuneOnMNLI
-    model = BertForSequenceClassification.from_pretrained(pretrain_model_dir, num_labels=num_labels)
-    tokenizer = BertTokenizer.from_pretrained(pretrain_model_dir, do_lower_case=args.do_lower_case)
-
+    model = BertForSequenceClassification.from_pretrained('bert-base-uncased', num_labels=num_labels)  # 2个标签
     if args.fp16:
         model.half()
     model.to(device)
-
-    if n_gpu > 1:
+    if n_gpu > 1:  # 多GPU
         model = torch.nn.DataParallel(model)
+
+    tokenizer = BertTokenizer.from_pretrained('bert-base-uncased', do_lower_case=args.do_lower_case)
 
     # Prepare optimizer
     param_optimizer = list(model.named_parameters())
-    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']
-    optimizer_grouped_parameters = [
-        {'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
-        {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}
-        ]
+    no_decay = ['bias', 'LayerNorm.bias', 'LayerNorm.weight']  # 不weight_decay
+    optimizer_grouped_parameters = [{'params': [p for n, p in param_optimizer if not any(nd in n for nd in no_decay)], 'weight_decay': 0.01},
+    {'params': [p for n, p in param_optimizer if any(nd in n for nd in no_decay)], 'weight_decay': 0.0}]
+                                                   # nd 在不在 n 中如果在把p放进去
     if args.fp16:
         try:
             from apex.optimizers import FP16_Optimizer
@@ -706,76 +640,64 @@ def main():
             optimizer = FP16_Optimizer(optimizer, dynamic_loss_scale=True)
         else:
             optimizer = FP16_Optimizer(optimizer, static_loss_scale=args.loss_scale)
-
     else:
         optimizer = AdamW(optimizer_grouped_parameters,
                              lr=args.learning_rate)
-    global_step = 0
-    nb_tr_steps = 0
-    tr_loss = 0
-    max_test_unseen_acc = 0.0
-    max_dev_unseen_acc = 0.0
-    max_dev_seen_acc = 0.0
-    max_overall_acc = 0.0
+    global_step = 0  # 
+    nb_tr_steps = 0  # 
+    tr_loss = 0  # 
+    max_test_unseen_acc = 0.0  # 
+    max_dev_unseen_acc = 0.0  # 
+    max_dev_seen_acc = 0.0  # 
+    max_overall_acc = 0.0  # 
     if args.do_train:
-        train_features = convert_examples_to_features(
-            train_examples, label_list, args.max_seq_length, tokenizer, output_mode)
+        train_features = convert_examples_to_features(train_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
-        '''load dev set'''
         eval_examples, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index = processor.get_examples_emotion_test('/home/zut_csi/tomding/zs/BenchmarkingZeroShot/emotion/dev.txt', seen_types)
         # /export/home/Dataset/Stuttgart_Emotion/unify-emotion-datasets-master/zero-shot-split/dev.txt', seen_types)
-        eval_features = convert_examples_to_features(
-            eval_examples, label_list, args.max_seq_length, tokenizer, output_mode)
-
-        eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
-        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
-
-        eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
-        eval_sampler = SequentialSampler(eval_data)
-        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
-
-        '''load test set'''
+        eval_features = convert_examples_to_features(eval_examples, label_list, args.max_seq_length, tokenizer, output_mode)
         test_examples, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index = processor.get_examples_emotion_test('/home/zut_csi/tomding/zs/BenchmarkingZeroShot/emotion/test.txt', seen_types)
         # /export/home/Dataset/Stuttgart_Emotion/unify-emotion-datasets-master/zero-shot-split/test.txt', seen_types)
-        test_features = convert_examples_to_features(
-            test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
+        test_features = convert_examples_to_features(test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
-        test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-        test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-        test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-        test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
-
-        test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
-        test_sampler = SequentialSampler(test_data)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
-
-
-        logger.info("***** Running training *****")
-        logger.info("  Num examples = %d", len(train_examples))
-        logger.info("  Batch size = %d", args.train_batch_size)
-        logger.info("  Num steps = %d", num_train_steps)
         all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
+        eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
+        test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
+
         all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
+        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
+        test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
+
         all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
+        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
+        test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
 
         if output_mode == "classification":
             all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
         elif output_mode == "regression":
             all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.float)
+        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
+        test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
 
-        # print('train all_label_ids:', all_label_ids)
-        # exit(0)
         train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
+        eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
+        test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
+        
         train_sampler = RandomSampler(train_data)
+        eval_sampler = SequentialSampler(eval_data)
+        test_sampler = SequentialSampler(test_data)
 
+        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
+        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
         train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
 
-        iter_co = 0
+        logger.info('*'*20, "Running training", '*'*20)
+        logger.info("Num examples:{} Batch size:{} Num steps:{}".format(len(train_examples), args.train_batch_size, num_train_steps))
+        iter_id = 0
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
             tr_loss = 0
-            nb_tr_examples, nb_tr_steps = 0, 0
+            nb_tr_examples = 0
+            nb_tr_steps = 0
             for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
                 batch = tuple(t.to(device) for t in batch)
@@ -784,7 +706,7 @@ def main():
                 loss_fct = CrossEntropyLoss()
                 loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
-                if n_gpu > 1:
+                if n_gpu > 1:  # 多GPU
                     loss = loss.mean() # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
                     loss = loss / args.gradient_accumulation_steps
@@ -798,21 +720,14 @@ def main():
                 optimizer.step()
                 optimizer.zero_grad()
                 global_step += 1
-                iter_co+=1
-                if iter_co %200==0:
-                    '''
-                    start evaluate on dev set after this epoch
-                    '''
+                iter_id += 1
+                if iter_id % 200 == 0:  # start evaluate on dev set after this epoch
                     model.eval()
-
-                    logger.info("***** Running evaluation *****")
-                    logger.info("  Num examples = %d", len(eval_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
-
+                    logger.info('*'*10, "Running evaluation", '*'*10)
+                    logger.info("Num_examples:{} Batch_size:{}".format(len(eval_examples), args.eval_batch_size)
                     eval_loss = 0
                     nb_eval_steps = 0
                     preds = []
-                    print('Evaluating...')
                     for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
@@ -832,10 +747,8 @@ def main():
                             preds.append(logits.detach().cpu().numpy())
                         else:
                             preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
                     eval_loss = eval_loss / nb_eval_steps
                     preds = preds[0]
-
                     '''
                     preds: size*2 (entail, not_entail)
                     wenpeng added a softxmax so that each row is a prob vec
@@ -869,14 +782,12 @@ def main():
                     '''
                     model.eval()
 
-                    logger.info("***** Running testing *****")
-                    logger.info("  Num examples = %d", len(test_examples))
-                    logger.info("  Batch size = %d", args.eval_batch_size)
+                    logger.info('*'*10, "Running testing", '*'*10)
+                    logger.info("Num_examples:{} Batch_size:{}".format(len(test_examples), args.eval_batch_size))
 
                     test_loss = 0
                     nb_test_steps = 0
                     preds = []
-                    print('Testing...')
                     for input_ids, input_mask, segment_ids, label_ids in test_dataloader:
                         input_ids = input_ids.to(device)
                         input_mask = input_mask.to(device)
