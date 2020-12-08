@@ -28,8 +28,7 @@ import codecs
 import numpy as np
 import torch
 from collections import defaultdict
-from torch.utils.data import (DataLoader, RandomSampler, SequentialSampler,
-                              TensorDataset)
+from torch.utils.data import DataLoader, RandomSampler, SequentialSampler, TensorDataset
 from torch.utils.data.distributed import DistributedSampler
 from tqdm import tqdm, trange
 
@@ -48,13 +47,12 @@ from transformers.optimization import AdamW
 from preprocess_emotion import evaluate_emotion_zeroshot_TwpPhasePred
 # import torch.optim as optimizer_wenpeng
 
-logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
-                    datefmt = '%m/%d/%Y %H:%M:%S',
+logging.basicConfig(format = '%(asctime)s_____%(levelname)s_____%(name)s:    %(message)s',
+                    datefmt = '%Y%m/%d/%H:%M:%S',
                     level = logging.INFO)
 logger = logging.getLogger(__name__)
 
 type2hypothesis = {
-
 'sadness': ['this person feels sad', 'this person expresses emotions experienced when not in a state of well-being'],
 'joy': ['the person feels joyful', 'the person expresses a feeling of great pleasure and happiness.'],
 'anger': ['the person feels angry', 'the person expresses a strong feeling of annoyance, displeasure, or hostility'],
@@ -591,18 +589,7 @@ def main():
     label_list = processor.get_labels()  # ["entailment", "not_entailment"]
     num_labels = len(label_list)  
 
-    train_examples = None
-    num_train_steps = None
-    if args.do_train:
-        # train_examples = processor.get_train_examples_wenpeng('/home/wyin3/Datasets/glue_data/RTE/train.tsv')
-        train_examples, seen_types = processor.get_examples_Wikipedia_train('/home/zut_csi/tomding/zs/BenchmarkingZeroShotData/tokenized_wiki2categories.txt', 100000)
-        
-        # /export/home/Dataset/wikipedia/parsed_output/tokenized_wiki/tokenized_wiki2categories.txt', 100000) #train_pu_half_v1.txt
-        # seen_classes=[0,2,4,6,8]
-        # ?？？？？？？？？？？？？？batch_size 已经除 args.gradient_accumulation_steps？？？？？？？？？？？？？？？？？
-        num_train_steps = int(len(train_examples)/args.train_batch_size/args.gradient_accumulation_steps)*args.num_train_epochs
-        if args.local_rank != -1:
-            num_train_steps = num_train_steps//torch.distributed.get_world_size()   # 全局的整个的进程数
+    
     # Prepare model
     cache_dir = args.cache_dir if args.cache_dir else os.path.join(str(PYTORCH_TRANSFORMERS_CACHE), 'distributed_{}'.format(args.local_rank))
     # model = BertForSequenceClassification.from_pretrained(args.bert_model,
@@ -643,185 +630,107 @@ def main():
     else:
         optimizer = AdamW(optimizer_grouped_parameters,
                              lr=args.learning_rate)
-    global_step = 0  # 
-    nb_tr_steps = 0  # 
-    tr_loss = 0  # 
-    max_test_unseen_acc = 0.0  # 
-    max_dev_unseen_acc = 0.0  # 
-    max_dev_seen_acc = 0.0  # 
-    max_overall_acc = 0.0  # 
-    if args.do_train:
-        train_features = convert_examples_to_features(train_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
+    
+    if args.do_train:
+        num_train_steps = None
+        # train_examples = processor.get_train_examples_wenpeng('/home/wyin3/Datasets/glue_data/RTE/train.tsv')
+        train_examples, seen_types = processor.get_examples_Wikipedia_train('/home/zut_csi/tomding/zs/BenchmarkingZeroShotData/tokenized_wiki2categories.txt', 100000)
+        # /export/home/Dataset/wikipedia/parsed_output/tokenized_wiki/tokenized_wiki2categories.txt', 100000) #train_pu_half_v1.txt
+        # seen_classes=[0,2,4,6,8]
         eval_examples, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index = processor.get_examples_emotion_test('/home/zut_csi/tomding/zs/BenchmarkingZeroShot/emotion/dev.txt', seen_types)
         # /export/home/Dataset/Stuttgart_Emotion/unify-emotion-datasets-master/zero-shot-split/dev.txt', seen_types)
-        eval_features = convert_examples_to_features(eval_examples, label_list, args.max_seq_length, tokenizer, output_mode)
         test_examples, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index = processor.get_examples_emotion_test('/home/zut_csi/tomding/zs/BenchmarkingZeroShot/emotion/test.txt', seen_types)
         # /export/home/Dataset/Stuttgart_Emotion/unify-emotion-datasets-master/zero-shot-split/test.txt', seen_types)
-        test_features = convert_examples_to_features(test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
 
-        all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long)
-        eval_all_input_ids = torch.tensor([f.input_ids for f in eval_features], dtype=torch.long)
-        test_all_input_ids = torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
-
-        all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long)
-        eval_all_input_mask = torch.tensor([f.input_mask for f in eval_features], dtype=torch.long)
-        test_all_input_mask = torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
-
-        all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long)
-        eval_all_segment_ids = torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long)
-        test_all_segment_ids = torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
-
+        train_features, eval_features, test_features = convert_examples_to_features(train_examples, label_list, args.max_seq_length, tokenizer, output_mode), convert_examples_to_features(eval_examples, label_list, args.max_seq_length, tokenizer, output_mode), convert_examples_to_features(test_examples, label_list, args.max_seq_length, tokenizer, output_mode)
+        all_input_ids, eval_all_input_ids, test_all_input_ids = torch.tensor([f.input_ids for f in train_features], dtype=torch.long), torch.tensor([f.input_ids for f in eval_features], dtype=torch.long), torch.tensor([f.input_ids for f in test_features], dtype=torch.long)
+        all_input_mask, eval_all_input_mask, test_all_input_mask = torch.tensor([f.input_mask for f in train_features], dtype=torch.long), torch.tensor([f.input_mask for f in eval_features], dtype=torch.long), torch.tensor([f.input_mask for f in test_features], dtype=torch.long)
+        all_segment_ids, eval_all_segment_ids, test_all_segment_ids = torch.tensor([f.segment_ids for f in train_features], dtype=torch.long), torch.tensor([f.segment_ids for f in eval_features], dtype=torch.long), torch.tensor([f.segment_ids for f in test_features], dtype=torch.long)
         if output_mode == "classification":
             all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.long)
         elif output_mode == "regression":
             all_label_ids = torch.tensor([f.label_id for f in train_features], dtype=torch.float)
-        eval_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long)
-        test_all_label_ids = torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+        eval_all_label_ids, test_all_label_ids = torch.tensor([f.label_id for f in eval_features], dtype=torch.long), torch.tensor([f.label_id for f in test_features], dtype=torch.long)
+        train_data, eval_data, test_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids), TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids), TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
+        train_sampler, eval_sampler, test_sampler = RandomSampler(train_data), SequentialSampler(eval_data), SequentialSampler(test_data)
+        eval_dataloader, test_dataloader, train_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size), DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size), DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
 
-        train_data = TensorDataset(all_input_ids, all_input_mask, all_segment_ids, all_label_ids)
-        eval_data = TensorDataset(eval_all_input_ids, eval_all_input_mask, eval_all_segment_ids, eval_all_label_ids)
-        test_data = TensorDataset(test_all_input_ids, test_all_input_mask, test_all_segment_ids, test_all_label_ids)
-        
-        train_sampler = RandomSampler(train_data)
-        eval_sampler = SequentialSampler(eval_data)
-        test_sampler = SequentialSampler(test_data)
+        # ?？？？？？？？？？？？？？batch_size 已经除 args.gradient_accumulation_steps？？？？？？？？？？？？？？？？？
+        num_train_steps = int(len(train_examples)/args.train_batch_size/args.gradient_accumulation_steps)*args.num_train_epochs
+        if args.local_rank != -1:
+            num_train_steps = num_train_steps//torch.distributed.get_world_size()   # 全局的整个的进程数
 
-        eval_dataloader = DataLoader(eval_data, sampler=eval_sampler, batch_size=args.eval_batch_size)
-        test_dataloader = DataLoader(test_data, sampler=test_sampler, batch_size=args.eval_batch_size)
-        train_dataloader = DataLoader(train_data, sampler=train_sampler, batch_size=args.train_batch_size)
-
-        logger.info('*'*20, "Running training", '*'*20)
-        logger.info("Num examples:{} Batch size:{} Num steps:{}".format(len(train_examples), args.train_batch_size, num_train_steps))
-        iter_id = 0
+        max_test_unseen_acc, max_dev_unseen_acc, max_dev_seen_acc, max_overall_acc = 0.0, 0.0, 0.0, 0.0  # 
+        logger.info('******************************************************  Running_training  ***************************************************')
+        logger.info("Num_examples:{} Batch_size:{} Num_steps:{}".format(len(train_examples), args.train_batch_size, num_train_steps))
         for _ in trange(int(args.num_train_epochs), desc="Epoch"):
-            tr_loss = 0
-            nb_tr_examples = 0
-            nb_tr_steps = 0
-            for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
+            train_loss = 0
+            for train_step, batch_data in enumerate(tqdm(train_dataloader, desc="Iteration")):
                 model.train()
-                batch = tuple(t.to(device) for t in batch)
-                input_ids, input_mask, segment_ids, label_ids = batch
-                logits = model(input_ids, segment_ids, input_mask, labels=None)
-                loss_fct = CrossEntropyLoss()
-                loss = loss_fct(logits[0].view(-1, num_labels), label_ids.view(-1))
 
+                batch_data = tuple(b.to(device) for b in batch_data)
+                input_ids, input_mask, segment_ids, label_ids = batch_data
+                logits = model(input_ids, segment_ids, input_mask, labels=None)[0]
+                tmp_train_loss = CrossEntropyLoss()(logits.view(-1, num_labels), label_ids.view(-1))
                 if n_gpu > 1:  # 多GPU
-                    loss = loss.mean() # mean() to average on multi-gpu.
+                    tmp_train_loss = tmp_train_loss.mean()  # mean() to average on multi-gpu.
                 if args.gradient_accumulation_steps > 1:
-                    loss = loss / args.gradient_accumulation_steps
-
-                loss.backward()
-
-                tr_loss += loss.item()
-                nb_tr_examples += input_ids.size(0)
-                nb_tr_steps += 1
+                    tmp_train_loss = tmp_train_loss/args.gradient_accumulation_steps
+                tmp_train_loss.backward()
+                train_loss += tmp_train_loss.item()
 
                 optimizer.step()
                 optimizer.zero_grad()
-                global_step += 1
-                iter_id += 1
-                if iter_id % 200 == 0:  # start evaluate on dev set after this epoch
-                    model.eval()
-                    logger.info('*'*10, "Running evaluation", '*'*10)
-                    logger.info("Num_examples:{} Batch_size:{}".format(len(eval_examples), args.eval_batch_size)
-                    eval_loss = 0
-                    nb_eval_steps = 0
-                    preds = []
-                    for input_ids, input_mask, segment_ids, label_ids in eval_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
 
-                        with torch.no_grad():
-                            logits = model(input_ids, segment_ids, input_mask, labels=None)
-                        logits = logits[0]
+                if (train_step+1) % 200 == 0:  # start evaluate on dev set after this epoch
+                    def et(et_dataloader, max_et_unseen_acc, et_label_list, et_hypo_seen_str_indicator, et_hypo_2_type_index):
+                        model.eval()
+                        et_loss, et_step, preds = 0, 0, []
+                        for input_ids, input_mask, segment_ids, label_ids in et_dataloader:
+                            input_ids, input_mask, segment_ids, label_ids= input_ids.to(device), input_mask.to(device), segment_ids.to(device), label_ids.to(device)
+                            with torch.no_grad():
+                                logits = model(input_ids, segment_ids, input_mask, labels=None)[0]
+                            tmp_et_loss = CrossEntropyLoss()(logits.view(-1, num_labels), label_ids.view(-1))
+                            et_loss += tmp_et_loss.mean().item()
+                            et_step += 1
+                            if len(preds) == 0:
+                                preds.append(logits.detach().cpu().numpy())  
+                                # 进行反向传播时，到该调用detach()的Variable就会停止，不能再继续向前进行传播.
+                                # cpu()函数作用是将数据从GPU上复制到memory上，相对应的函数是cuda()
+                            else:
+                                preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
+                        et_loss = et_loss / et_step
+                        preds = preds[0]
+                        '''
+                        preds: size*2 (entail, not_entail)
+                        wenpeng added a softxmax so that each row is a prob vec
+                        '''
+                        pred_probs = softmax(preds, axis=1)[:, 0]
+                        pred_binary_labels_harsh, pred_binary_labels_loose = [], []
+                        for i in range(preds.shape[0]):
+                            pred_binary_labels_harsh.append(0) if preds[i][0] > preds[i][1]+0.1 else pred_binary_labels_harsh.append(1)
+                            pred_binary_labels_loose.append(0) if preds[i][0] > preds[i][1] else pred_binary_labels_loose.append(1)
 
-                        loss_fct = CrossEntropyLoss()
-                        tmp_eval_loss = loss_fct(logits.view(-1, num_labels), label_ids.view(-1))
-
-                        eval_loss += tmp_eval_loss.mean().item()
-                        nb_eval_steps += 1
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
-                        else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-                    eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
-                    '''
-                    preds: size*2 (entail, not_entail)
-                    wenpeng added a softxmax so that each row is a prob vec
-                    '''
-                    pred_probs = softmax(preds,axis=1)[:,0]
-                    pred_binary_labels_harsh = []
-                    pred_binary_labels_loose = []
-                    for i in range(preds.shape[0]):
-                        if preds[i][0]>preds[i][1]+0.1:
-                            pred_binary_labels_harsh.append(0)
-                        else:
-                            pred_binary_labels_harsh.append(1)
-                        if preds[i][0]>preds[i][1]:
-                            pred_binary_labels_loose.append(0)
-                        else:
-                            pred_binary_labels_loose.append(1)
-
-                    seen_acc, unseen_acc = evaluate_emotion_zeroshot_TwpPhasePred(pred_probs, pred_binary_labels_harsh, pred_binary_labels_loose, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index, seen_types)
-                    # result = compute_metrics('F1', preds, all_label_ids.numpy())
-                    loss = tr_loss/nb_tr_steps if args.do_train else None
-                    # test_acc = mean_f1#result.get("f1")
-                    if unseen_acc > max_dev_unseen_acc:
-                        max_dev_unseen_acc = unseen_acc
-                    print('\ndev seen_f1 & unseen_f1:', seen_acc,unseen_acc, ' max_dev_unseen_f1:', max_dev_unseen_acc, '\n')
+                        seen_acc, unseen_acc = evaluate_emotion_zeroshot_TwpPhasePred(pred_probs, pred_binary_labels_harsh, pred_binary_labels_loose, et_label_list, et_hypo_seen_str_indicator, et_hypo_2_type_index, seen_types)
+                        # result = compute_metrics('F1', preds, all_label_ids.numpy())
+                        loss = train_loss/train_step if args.do_train else None
+                        # test_acc = mean_f1#result.get("f1")
+                        if unseen_acc > max_et_unseen_acc:
+                            max_et_unseen_acc = unseen_acc
+                        print('seen_f1:{} unseen_f1:{} max_unseen_f1:{}'.format(seen_acc, unseen_acc, max_et_unseen_acc))
+                        return max_et_unseen_acc
                     # if seen_acc+unseen_acc > max_overall_acc:
                     #     max_overall_acc = seen_acc + unseen_acc
                     # if seen_acc > max_dev_seen_acc:
                     #     max_dev_seen_acc = seen_acc
-                    '''
-                    start evaluate on test set after this epoch
-                    '''
-                    model.eval()
 
-                    logger.info('*'*10, "Running testing", '*'*10)
+                    logger.info('*********************  Running evaluation  *********************')
+                    logger.info("Num_examples:{} Batch_size:{}".format(len(eval_examples), args.eval_batch_size))
+                    max_dev_unseen_acc = et(eval_dataloader, max_dev_unseen_acc, eval_label_list, eval_hypo_seen_str_indicator, eval_hypo_2_type_index)
+                    logger.info('*********************    Running testing   *********************')
                     logger.info("Num_examples:{} Batch_size:{}".format(len(test_examples), args.eval_batch_size))
-
-                    test_loss = 0
-                    nb_test_steps = 0
-                    preds = []
-                    for input_ids, input_mask, segment_ids, label_ids in test_dataloader:
-                        input_ids = input_ids.to(device)
-                        input_mask = input_mask.to(device)
-                        segment_ids = segment_ids.to(device)
-                        label_ids = label_ids.to(device)
-
-                        with torch.no_grad():
-                            logits = model(input_ids, segment_ids, input_mask, labels=None)
-                        logits = logits[0]
-                        if len(preds) == 0:
-                            preds.append(logits.detach().cpu().numpy())
-                        else:
-                            preds[0] = np.append(preds[0], logits.detach().cpu().numpy(), axis=0)
-
-                    # eval_loss = eval_loss / nb_eval_steps
-                    preds = preds[0]
-                    pred_probs = softmax(preds,axis=1)[:,0]
-                    pred_binary_labels_harsh = []
-                    pred_binary_labels_loose = []
-                    for i in range(preds.shape[0]):
-                        if preds[i][0]>preds[i][1]+0.1:
-                            pred_binary_labels_harsh.append(0)
-                        else:
-                            pred_binary_labels_harsh.append(1)
-                        if preds[i][0]>preds[i][1]:
-                            pred_binary_labels_loose.append(0)
-                        else:
-                            pred_binary_labels_loose.append(1)
-
-                    seen_acc, unseen_acc = evaluate_emotion_zeroshot_TwpPhasePred(pred_probs, pred_binary_labels_harsh, pred_binary_labels_loose, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index, seen_types)
-                    if unseen_acc > max_test_unseen_acc:
-                        max_test_unseen_acc = unseen_acc
-                    print('\n\n\t test seen_f1 & unseen_f1:', seen_acc,unseen_acc, ' max_test_unseen_f1:', max_test_unseen_acc, '\n')
-
+                    max_test_unseen_acc = et(test_dataloader, max_test_unseen_acc, test_label_list, test_hypo_seen_str_indicator, test_hypo_2_type_index)
 if __name__ == "__main__":
     main()
 # CUDA_VISIBLE_DEVICES=1,2 python -u train_Yahoo_fine_tune_Bert_zeroshot.py --task_name rte --do_train --do_lower_case --bert_model bert-base-uncased --max_seq_length 128 --train_batch_size 32 --learning_rate 2e-5 --num_train_epochs 3 --data_dir '' --output_dir ''
